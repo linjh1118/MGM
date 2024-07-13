@@ -5,6 +5,9 @@ AUX_SIZE=768
 
 # delete --hostfile hostfile and change --per_device_train_batch_size if trained on single machine
 
+# 第一个指令就是pretrain一个projector存到PRETRAIN_NAME文件夹，
+# 第二个指令就是加载好的projector
+
 deepspeed --hostfile hostfile \
     mgm/train/train_mem.py \
     --deepspeed ./scripts/zero2_offload.json \

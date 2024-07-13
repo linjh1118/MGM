@@ -1083,6 +1083,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
 
 
 def train(attn_implementation=None):
+    DOC0_Args = """"""
     global local_rank
 
     parser = transformers.HfArgumentParser(
@@ -1110,6 +1111,7 @@ def train(attn_implementation=None):
             )
         ))
 
+    DOC1_Init_MLLM_or_LLM = """mark"""
     if model_args.vision_tower is not None:
         if "mistral" in  model_args.model_name_or_path.lower():
             model = MGMMistralForCausalLM.from_pretrained(
@@ -1137,7 +1139,7 @@ def train(attn_implementation=None):
                 torch_dtype=(torch.bfloat16 if training_args.bf16 else None),
                 **bnb_model_from_pretrained_args
             )
-        else:
+        elif any([x in model_args.model_name_or_path.lower() for x in ['llama', 'vicuna', 'alpaca']]):
             model = MGMLlamaForCausalLM.from_pretrained(
                 model_args.model_name_or_path,
                 cache_dir=training_args.cache_dir,
@@ -1146,6 +1148,7 @@ def train(attn_implementation=None):
                 **bnb_model_from_pretrained_args
             )
     else:
+        print('Bro, you do not offer vision tower, right?')
         model = transformers.LlamaForCausalLM.from_pretrained(
             model_args.model_name_or_path,
             cache_dir=training_args.cache_dir,
@@ -1170,7 +1173,9 @@ def train(attn_implementation=None):
             def make_inputs_require_grad(module, input, output):
                 output.requires_grad_(True)
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
-
+    
+    DOC2_Config_which_train = """"""
+    #### LORA ####
     if training_args.lora_enable:
         from peft import LoraConfig, get_peft_model
         lora_config = LoraConfig(
@@ -1189,6 +1194,8 @@ def train(attn_implementation=None):
         rank0_print("Adding LoRA adapters...")
         model = get_peft_model(model, lora_config)
 
+    #### Tokenization ####
+    # load tokenizer
     if 'mpt' in model_args.model_name_or_path:
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_args.model_name_or_path,
@@ -1213,6 +1220,7 @@ def train(attn_implementation=None):
             use_fast=False,
         )
 
+    # 根据version字段，对tokenizer进一步修改
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
             smart_tokenizer_and_embedding_resize(
@@ -1243,6 +1251,7 @@ def train(attn_implementation=None):
         else:
             conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
 
+    # 初始化视觉模块，并配置其可训练性质
     if model_args.vision_tower is not None:
         model.get_model().initialize_vision_modules(
             model_args=model_args,
@@ -1267,7 +1276,7 @@ def train(attn_implementation=None):
         if model_args.tune_mm_mlp_adapter:
             model.requires_grad_(False)
             for p in model.get_model().mm_projector.parameters():
-                p.requires_grad = True
+                p.requires_grad = True  # 之前是挂载了lora，现在是只有projector
 
         model.config.freeze_mm_mlp_adapter = training_args.freeze_mm_mlp_adapter
         if training_args.freeze_mm_mlp_adapter:
@@ -1310,6 +1319,7 @@ def train(attn_implementation=None):
 
         model.get_model().initialize_uni_modules(model_args)
 
+    # 没搞懂？默认都有lora？
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
         for name, module in model.named_modules():
