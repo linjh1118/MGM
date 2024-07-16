@@ -4,7 +4,7 @@ from .eva_encoder import EVAVisionTower
 from .openclip_encoder import OpenCLIPVisionTower
 
 
-def build_vision_tower(vision_tower_cfg, **kwargs):
+def build_vision_tower(vision_tower_cfg, **kwargs) -> CLIPVisionTower:
     vision_tower = getattr(vision_tower_cfg, 'mm_vision_tower', getattr(vision_tower_cfg, 'vision_tower', None))
     image_processor = getattr(vision_tower_cfg, 'image_processor', getattr(vision_tower_cfg, 'image_processor', "../processor/clip-patch14-224"))
     

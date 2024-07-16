@@ -45,6 +45,7 @@ class MGMLlamaModel(MGMMetaModel, LlamaModel):
 
 
 class MGMLlamaForCausalLM(LlamaForCausalLM, MGMMetaForCausalLM):
+    """比较形式，抽象地forward和generate方法，这里感觉更像是协议"""
     config_class = MGMConfig
 
     def __init__(self, config):

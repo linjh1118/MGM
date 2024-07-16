@@ -221,6 +221,12 @@ class MGMMetaModel:
         get_w(projector_weights, 'vlm_uni_aux_projector', self, 'vlm_uni_aux_projector')
         get_w(projector_weights, 'vlm_uni_val_projector', self, 'vlm_uni_val_projector')
     
+README="""有意思，模型结构都在MGMMetaModel中的init方法中定义完成，而MGMMetaForCausalLM则负责多模态的信息拼接在一起，准备前向传播。
+我懂了，这些都是有两组核心函数，
+第一组准备结构【initialize_vision_modules..., get_vision_tower...】
+第二组准备数据【prepare_inputs_labels_for_multimodal..., encode_images...】
+"""
+
 class MGMMetaForCausalLM(ABC):
 
     @abstractmethod
@@ -312,7 +318,8 @@ class MGMMetaForCausalLM(ABC):
 
     def prepare_inputs_labels_for_multimodal(
         self, input_ids, position_ids, attention_mask, past_key_values, labels, images=None, images_aux=None,
-    ):        
+    ):
+        """！！！！！！！！两种分辨率的到底在哪呀，可恶！！！！！！！"""
         vision_tower = self.get_vision_tower()
         if vision_tower is None or images is None or input_ids.shape[1] == 1:
             if past_key_values is not None and vision_tower is not None and images is not None and input_ids.shape[1] == 1:                
@@ -324,7 +331,7 @@ class MGMMetaForCausalLM(ABC):
                 )), dim=1)
                 position_ids = torch.sum(attention_mask, dim=1).unsqueeze(-1) - 1
             return input_ids, position_ids, attention_mask, past_key_values, None, labels
-
+         
         if isinstance(images, list):
             images = torch.stack(images, dim=0)
         if isinstance(images_aux, list):
